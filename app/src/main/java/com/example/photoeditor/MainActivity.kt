@@ -1,9 +1,12 @@
 package com.example.photoeditor
 
 import android.Manifest.permission
+import android.content.ContentValues
+import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaScannerConnection
 import android.net.Uri
@@ -20,13 +23,18 @@ import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import androidx.core.content.FileProvider.getUriForFile
+import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
-    private val CARPETA_RAIZ = "Camera/"
+    private val CARPETA_RAIZ = ""
     private val RUTA_IMAGEN = CARPETA_RAIZ + "misFotos"
     val COD_SELECCIONA = 10
     val COD_FOTO = 20
@@ -43,6 +51,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             botonCargar!!.isEnabled = false
         }
+        ActivityCompat.requestPermissions(this,
+            arrayOf("Manifest.permission.WRITE_EXTERNAL_STORAGE"),1);
     }
 
     private fun validaPermisos(): Boolean {
@@ -156,27 +166,56 @@ class MainActivity : AppCompatActivity() {
         alertOpciones.show()
     }
 
+    lateinit var currentPhotoPath: String
 
-    private fun tomarFotografia() {
+    @Throws(IOException::class)
+    private fun createImageFile(): File {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+        val imageFileName = "JPEG_" + timeStamp + "_"
+        val storageDir: File? = getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        val image: File = File.createTempFile(
+            imageFileName,  /* prefix */
+            ".jpg",  /* suffix */
+            storageDir /* directory */
+        )
+
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath()
+        return image
+    }
+
+    val REQUEST_TAKE_PHOTO = 1
+    var photoURI: Uri? = null
+
+
+
+
+   private fun tomarFotografia() {
+        val a = null
         Log.i("mensaje","tomar foto")
-        val fileImagen = File(Environment.getExternalStorageDirectory(),"/DCIM/"+RUTA_IMAGEN)
-        val nueva = File(fileImagen.absolutePath, "/DCIM/"+RUTA_IMAGEN)
+        val fileImagen = File(Environment.getExternalStorageDirectory().toString(),File.separator+"Pictures"+File.separator+RUTA_IMAGEN)
         Log.i("image","$fileImagen")
-        var isCreada = nueva.exists()
+        var isCreada = fileImagen.isDirectory()
         var nombreImagen = ""
-        if (isCreada == false) {
-            nueva.mkdirs()
-            isCreada = true;
+        if (!isCreada) {
+            try{
+                fileImagen.mkdir();
+                Log.i("mkdir", fileImagen.mkdir().toString())
+                isCreada= true
+            }catch (e : SecurityException){
+                Log.i("error", "$e")
+            }
+
         }
-        if (isCreada == true) {
+        if (isCreada) {
             nombreImagen = (System.currentTimeMillis() / 1000).toString() + ".jpg"
             Log.i("image name","$nombreImagen")
         }
-        path = Environment.getExternalStorageDirectory().toString()+"/DCIM/" +
-                "/" + RUTA_IMAGEN + "/" + nombreImagen
+        path = Environment.getExternalStorageDirectory().toString()+"/" + File.separator + "Pictures" +
+                File.separator + RUTA_IMAGEN + File.separator + nombreImagen
         val imagen = File(path)
         Log.i("ruta","$imagen")
-        var intent: Intent? = null
+        var intent: Intent
         intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         ////
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -186,12 +225,14 @@ class MainActivity : AppCompatActivity() {
         } else {
             intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(imagen))
         }
-        startActivityForResult(intent, COD_FOTO)
+        startActivityForResult(intent, REQUEST_TAKE_PHOTO)
 
         ////
     }
+    val REQUEST_IMAGE_CAPTURE = 1;
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        val intent = Intent(this@MainActivity, FiltrosActivity::class.java);
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == RESULT_OK) {
             when (requestCode) {
@@ -199,15 +240,23 @@ class MainActivity : AppCompatActivity() {
                     val miPath = data!!.data
                     Log.i("rel foto","$miPath")
                     imagen!!.setImageURI(miPath)
-
+                    intent.putExtra("imagen", data?.data.toString())
+                    startActivity(intent);
                 }
-                COD_FOTO -> {
+                REQUEST_IMAGE_CAPTURE -> {
                     Log.i("entra","ok")
                     MediaScannerConnection.scanFile(
                         this, arrayOf(path), null
                     ) { path, uri -> Log.i("Ruta de almacenamiento", "Path: $path") }
                     val bitmap = BitmapFactory.decodeFile(path)
                     imagen!!.setImageBitmap(bitmap)
+
+                    intent.putExtra("imagen", path)
+
+                    startActivity(intent);
+
+                    /* var imageBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), photoURI)
+                    ivFoto.setImageBitmap(imageBitmap)*/
                 }
             }
         }
