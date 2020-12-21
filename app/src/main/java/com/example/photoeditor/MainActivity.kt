@@ -29,6 +29,7 @@ import androidx.core.content.FileProvider.getUriForFile
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.io.IOException
+import java.lang.Thread.sleep
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     var path: String? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sleep(3000)
         setContentView(R.layout.activity_main)
         imagen = findViewById<View>(R.id.ivFoto) as ImageView
         botonCargar = findViewById<View>(R.id.btnTomarFoto) as Button

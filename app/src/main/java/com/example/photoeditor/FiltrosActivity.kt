@@ -43,48 +43,37 @@ class FiltrosActivity : AppCompatActivity() {
         btnRegresar = findViewById(R.id.btnRegresar)
         btnGuardar = findViewById(R.id.btnGuardar)
         btnDeshacer = findViewById(R.id.btnDeshacer)
-        btnAceptar = findViewById(R.id.btnAceptar)
         imgFoto = findViewById(R.id.imgFoto)
         layoutContainer = findViewById(R.id.layoutContainer)
 
         imgFoto.setImageURI(Uri.parse(strUser))
 
-        //Guardará la imagen previa antes de meter el próximo filtro
         var bitmapUndo: Bitmap = (imgFoto.getDrawable() as BitmapDrawable).bitmap.copy(
             (imgFoto.getDrawable() as BitmapDrawable).bitmap.config,
             true
         )
-        //Guardará la imagen tal y como cuando la seleccionó de la galeria o desde la cámara
         var bitmapOriginal: Bitmap = (imgFoto.getDrawable() as BitmapDrawable).bitmap.copy(
             (imgFoto.getDrawable() as BitmapDrawable).bitmap.config,
             true
         )
 
-        //Regresamos al main
         btnRegresar.setOnClickListener {
             startActivity(Intent(this, MainActivity::class.java));
         }
 
-        //Botón para "Deshacer"
+        //quita filtro
         btnDeshacer.setOnClickListener {
-            imgFoto.setImageBitmap(bitmapOriginal)//Cambiará el BitMap al que guardó ultimamente
+            imgFoto.setImageBitmap(bitmapOriginal)
         }
 
-        //Botón para "Aceptar"
-        btnAceptar.setOnClickListener {
-            bitmapUndo = (imgFoto.getDrawable() as BitmapDrawable).bitmap.copy(
-                (imgFoto.getDrawable() as BitmapDrawable).bitmap.config,
-                true
-            )
-            Toast.makeText(this, "Filtro guardado.", Toast.LENGTH_SHORT).show()
-        }
 
-        //Botón para "Guardar"
+
+
         btnGuardar.setOnClickListener {
             guardarImagen()
         }
 
-        //Añadimos nuestro arreglo de filtros que usará la app
+
         var filtros = arrayOf(
             FiltroControlador(this).setFiltro(FiltroNegativo()),
             FiltroControlador(this).setFiltro(FiltroGrises()),
@@ -95,16 +84,7 @@ class FiltrosActivity : AppCompatActivity() {
             FiltroControlador(this).setFiltro(FiltroSeparacionVerde()),
             FiltroControlador(this).setFiltro(FiltroSeparacionAzul()),
 
-            //Blurs
-            /*
-            FiltroControlador(this).setFiltro(FiltroBlurSmoothing()),
-            FiltroControlador(this).setFiltro(FiltroBlurGaussian()),
-            FiltroControlador(this).setFiltro(FiltroBlurSharpen()),
-            FiltroControlador(this).setFiltro(FiltroBlurMeanRemoval()),
-            FiltroControlador(this).setFiltro(FiltroBlurEmbossing()),
-            FiltroControlador(this).setFiltro(FiltroBlurEdgeDetection()),*/
 
-            //Otros
             FiltroControlador(this).setFiltro(FiltroSeparacionMacabro()),
             FiltroControlador(this).setFiltro(FiltroSeparacionArreglarBlancos()),
             FiltroControlador(this).setFiltro(FiltroSeparacionArreglarNegros()),
@@ -112,33 +92,28 @@ class FiltrosActivity : AppCompatActivity() {
             FiltroControlador(this).setFiltro(FiltroSeparacionPantallaRota())
         )
 
-        //Ciclamos todo el arreglo
         for (filtro in filtros) {
-            layoutContainer.addView(filtro.getLayout())//Lo añadimos al HorizontalScrollView
+            layoutContainer.addView(filtro.getLayout())
             filtro.setOnClickFiltroListener {
                 Toast.makeText(this, "Filtro ${it} aplicado", Toast.LENGTH_SHORT).show()
 
-                imgFoto.setImageBitmap(bitmapUndo)//Usamos la imagen previa
-                imgFoto.setImageBitmap(filtro.convertImg(imgFoto))//Le añadimos el efecto seleccionado
+                imgFoto.setImageBitmap(bitmapUndo)
+                imgFoto.setImageBitmap(filtro.convertImg(imgFoto))
             }
         }
 
     }
 
-    /**
-     * Función que guarda la imagen y abre su vista.
-     */
+
     private fun guardarImagen() {
-        //Guardamos la imagen
         val draw = imgFoto.getDrawable() as BitmapDrawable
         val bitmap = draw.bitmap
-
         var outStream: FileOutputStream? = null
         val sdCard: File = Environment.getExternalStorageDirectory()
         val dir = File(sdCard.getAbsolutePath().toString() + "/PhotoEditor")
-        dir.mkdirs()//Creamos la carpeta en caso de que no exista para guardar las fotos editadas de esta APP
+        dir.mkdirs()
         val fileName =
-            String.format("%d.png", System.currentTimeMillis())//Nombre
+            String.format("%d.png", System.currentTimeMillis())
         val outFile = File(dir, fileName)
         outStream = FileOutputStream(outFile)
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, outStream)
